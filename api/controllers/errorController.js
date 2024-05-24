@@ -46,7 +46,7 @@ function sendErrorProd(err, res) {
     // unknown errors: don't leak errors details
   } else {
     // log error for log files
-    console.error('Error 💥:', err);
+    logger.error('Error 💥:', err);
     // send generic error
     res.status(500).json({
       status: 'error',
