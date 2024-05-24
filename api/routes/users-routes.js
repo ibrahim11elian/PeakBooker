@@ -8,7 +8,7 @@ const router = Router();
 
 // account routes
 router.post('/signup', auth.signup);
-router.post('/login', auth.login);
+router.post('/login', auth.validateLoginAttempt, auth.login);
 
 // password routes
 router.post('/forgotPassword', auth.forgotPassword);

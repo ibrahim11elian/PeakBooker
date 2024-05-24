@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/userModel.js';
 import AppError from '../utils/error.js';
 import Email from '../utils/email.js';
+import logger from '../utils/logger.js';
 
 class AuthController {
   constructor() {}
@@ -48,34 +49,78 @@ class AuthController {
     }
   };
 
-  login = async (req, res, next) => {
+  login = (req, res) => {
+    const { user } = req;
+
+    const token = this.generateToken({ id: user._id });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Logged in successfully',
+      token,
+    });
+  };
+
+  validateLoginAttempt = async (req, res, next) => {
     try {
       const { email, password } = req.body;
 
-      if (!email || !password)
+      // Check if email and password are provided
+      if (!email || !password) {
         return next(
           new AppError(
-            'Missing information you have to provide email and password',
+            'Missing information: you must provide both email and password.',
             400,
           ),
         );
-
-      const user = await User.findOne({ email, active: true }).select(
-        '+password',
-      );
-
-      if (!user || !(await user.comparePassword(password, user.password))) {
-        return next(new AppError('email or password is wrong!', 401));
       }
 
-      const token = this.generateToken({ id: user._id });
-      res.status(200).json({
-        status: 'success',
-        message: 'Logged in successfully',
-        token,
-      });
+      // Retrieve the user by email, ensure the user is active, and select the required fields
+      const user = await User.findOne({ email }).select([
+        '+password',
+        '+loginAttempts',
+        '+loginExpires',
+        '+lastLoginAttempt',
+      ]);
+
+      // Check if the user exists
+      if (!user) {
+        return next(new AppError('Invalid email or password!', 401));
+      }
+
+      // Check login attempt limits
+      if (!user.checkLogin()) {
+        await user.save(); // Save the state in case login attempt count or lockout has been updated
+        const minutesRemaining = (
+          (user.loginExpires - Date.now()) /
+          1000 /
+          60
+        ).toFixed();
+
+        const message = `User ${email} has reached the maximum login attempts, locked out for ${minutesRemaining} minutes.`;
+        logger.warn(message);
+
+        return next(
+          new AppError(
+            `You have reached the maximum login attempts, please try again in ${minutesRemaining} Minutes.`,
+            401,
+          ),
+        );
+      }
+
+      // Save the user state after updating login attempts
+      await user.save();
+
+      // Compare the provided password with the stored password
+      if (!(await user.comparePassword(password, user.password))) {
+        return next(new AppError('Invalid email or password!', 401));
+      }
+
+      req.user = user;
+
+      next();
     } catch (error) {
-      next(error);
+      next(error); // Pass any errors to the error handling middleware
     }
   };
 
