@@ -47,6 +47,19 @@ const userSchema = mongoose.Schema({
     default: true,
     select: false,
   },
+  loginAttempts: {
+    type: Number,
+    default: 0,
+    select: false,
+  },
+  loginExpires: {
+    type: Date,
+    select: false,
+  },
+  lastLoginAttempt: {
+    type: Date,
+    select: false,
+  },
 });
 
 userSchema.pre('save', async function (next) {
@@ -116,6 +129,40 @@ userSchema.methods.createPasswordResetToken = function () {
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 
   return resetToken;
+};
+
+userSchema.methods.checkLogin = function () {
+  // Get the current timestamp
+  const now = Date.now();
+
+  // Check if the last login attempt was within the last minute
+  if (this.lastLoginAttempt && now - this.lastLoginAttempt <= 60 * 1000) {
+    // If login attempts are less than 10, increment attempts and allow login
+    if (this.loginAttempts < 10) {
+      this.loginAttempts += 1;
+      this.lastLoginAttempt = now;
+      return true;
+    } else {
+      // If login attempts exceed 10, set a lockout period of 1 hour and deny login
+      this.loginExpires = now + 60 * 60 * 1000;
+      return false;
+    }
+  } else {
+    // If last login attempt was more than a minute ago, check if a lockout period is set
+    if (this.loginExpires) {
+      // If the lockout period has not expired, deny login
+      if (this.loginExpires > now) {
+        return false;
+      } else {
+        // If the lockout period has expired, clear the lockout
+        this.loginExpires = undefined;
+      }
+    }
+    // Reset login attempts and set the last login attempt time
+    this.loginAttempts = 1;
+    this.lastLoginAttempt = now;
+    return true; // Allow login
+  }
 };
 
 const User = mongoose.model('User', userSchema);
