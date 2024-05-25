@@ -8,7 +8,7 @@ import morgan from 'morgan';
 
 import AppError from './api/utils/error.js';
 import errorHandler from './api/controllers/errorController.js';
-import { tourRouter, userRouter } from './api/routes/index.js';
+import { reviewRouter, tourRouter, userRouter } from './api/routes/index.js';
 import logger from './api/utils/logger.js';
 
 // Instantiate the App
@@ -84,6 +84,7 @@ app.use(express.static('./dev-data/img'));
 // App Routers
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 // Error
 app.all('*', (_, res, next) => {
