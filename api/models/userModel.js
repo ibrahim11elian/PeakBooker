@@ -85,6 +85,10 @@ userSchema.pre('save', function (next) {
 
 const activeFilterPlugin = (schema) => {
   const applyFilter = function (next) {
+    // Check if the query is for populating guides
+    if (this.getQuery()._id && this.model.collection.name === 'users') {
+      return next();
+    }
     this.find({ active: { $ne: false } });
     next();
   };
