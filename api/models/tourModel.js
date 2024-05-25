@@ -70,6 +70,32 @@ const tourSchema = new mongoose.Schema(
       select: false,
     },
     startDates: [Date],
+    startLocation: {
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+        required: true,
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+          required: true,
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    guides: [{ type: mongoose.Schema.ObjectId, ref: 'User' }],
   },
   {
     toJSON: {
@@ -80,6 +106,22 @@ const tourSchema = new mongoose.Schema(
     },
   },
 );
+
+const populatePlugin = (schema) => {
+  const applyPopulate = function (next) {
+    this.populate({
+      path: 'guides',
+      select: '-__v',
+    });
+    next();
+  };
+
+  schema.pre('find', applyPopulate);
+  schema.pre('findOne', applyPopulate);
+  schema.pre('findOneAndUpdate', applyPopulate);
+};
+
+tourSchema.plugin(populatePlugin);
 
 tourSchema.virtual('durationWeeks').get(function () {
   return (this.duration / 7).toFixed(2);
