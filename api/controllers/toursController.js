@@ -50,7 +50,7 @@ export default class Tours {
     try {
       const { id } = req.params;
 
-      const tour = await TourModel.findById(id);
+      const tour = await TourModel.findById(id).select('-__v');
 
       if (!tour) {
         return next(new AppError('tour not found!', 404));
