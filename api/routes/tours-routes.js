@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import Tours from '../controllers/toursController.js';
 import AuthController from '../controllers/authController.js';
+import reviewRouter from './reviews-routes.js';
 
 const router = Router();
 
 const tours = new Tours();
 const auth = new AuthController();
 
-// router.param('/id', tours.tourCheck);
+router.use('/:tourId/reviews', reviewRouter);
+
 // Tours Routes
 router
   .route('/')
