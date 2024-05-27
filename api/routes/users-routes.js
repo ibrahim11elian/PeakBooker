@@ -16,21 +16,21 @@ router.patch('/resetPassword/:token', auth.resetPassword);
 router.patch('/updatePassword', auth.protect, auth.updatePassword);
 
 // current user control routes
+router.get('/me', auth.protect, users.getMe, users.getUserByID);
 router.patch('/updateMe', auth.protect, users.updateMe);
 router.delete('/deleteMe', auth.protect, users.deleteMe);
 
 // User Routes
 router
   .route('/')
-  .all(auth.protect)
-  .get(users.getAllUsers)
-  .post(users.createNewUser);
+  .all(auth.protect, auth.restrictTo('admin'))
+  .get(users.getAllUsers);
 
 router
   .route('/:id')
-  .all(auth.protect)
+  .all(auth.protect, auth.restrictTo('admin'))
   .get(users.getUserByID)
-  .put(users.updateUser)
+  .patch(users.updateUser)
   .delete(users.deleteUser);
 
 export default router;
