@@ -1,47 +1,18 @@
 import UserModel from '../models/userModel.js';
-import { APIFeatures } from '../utils/api-features.js';
 import AppError from '../utils/error.js';
+import BaseController from './baseController.js';
 
-export default class Users {
-  constructor() {}
+export default class Users extends BaseController {
+  constructor() {
+    super(UserModel);
+  }
 
-  getAllUsers = async (req, res, next) => {
-    try {
-      // create feature object to apply operations on mongoose query
-      const features = new APIFeatures(UserModel.find(), req.query);
+  getAllUsers = this.getAll;
 
-      // 1) Filter
-      features.filter();
-
-      // 2) Sort
-      features.sort();
-
-      // 3) Projection
-      features.limitFields();
-
-      // 4) Pagination
-      features.paginate();
-
-      // execute the query
-      const numUsers = await UserModel.countDocuments();
-      const users = await features.query;
-      res.status(200).json({
-        status: 'success',
-        totalUsers: numUsers,
-        results: users.length,
-        data: users,
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  createNewUser = (req, res) => {
-    res.status(503).json({ message: 'this route not yet implemented' });
-  };
-
-  getUserByID = (req, res) => {
-    res.status(503).json({ message: 'this route not yet implemented' });
+  getMe = (req, res, next) => {
+    // middleware to pass the id that we got from the protect middleware to the getUserByID all the way to getOne
+    req.params.id = req.user.id;
+    next();
   };
 
   updateMe = async (req, res, next) => {
@@ -82,11 +53,8 @@ export default class Users {
     }
   };
 
-  updateUser = async (req, res, next) => {
-    res.status(503).json({ message: 'this route not yet implemented' });
-  };
-
-  deleteUser = (req, res) => {
-    res.status(503).json({ message: 'this route not yet implemented' });
-  };
+  // for admin use
+  getUserByID = this.getOne();
+  updateUser = this.updateOne; // don't update the password
+  deleteUser = this.deleteOne;
 }

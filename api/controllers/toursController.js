@@ -1,103 +1,20 @@
 import TourModel from '../models/tourModel.js';
-import { APIFeatures } from '../utils/api-features.js';
-import AppError from '../utils/error.js';
+import BaseController from './baseController.js';
 
-export default class Tours {
-  constructor() {}
+class Tours extends BaseController {
+  constructor() {
+    super(TourModel);
+  }
 
-  getTours = async (req, res, next) => {
-    try {
-      // create feature object to apply operations on mongoose query
-      const features = new APIFeatures(TourModel.find(), req.query);
+  getTours = this.getAll;
 
-      // 1) Filter
-      features.filter();
+  createNewTour = this.createOne;
 
-      // 2) Sort
-      features.sort();
+  getTourByID = this.getOne('reviews');
 
-      // 3) Projection
-      features.limitFields();
+  updateTour = this.updateOne;
 
-      // 4) Pagination
-      features.paginate();
-
-      // execute the query
-      const numTours = await TourModel.countDocuments();
-      const tours = await features.query;
-      res.status(200).json({
-        status: 'success',
-        totalTours: numTours,
-        results: tours.length,
-        data: tours,
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  createNewTour = async (req, res, next) => {
-    try {
-      const newTour = await TourModel.create(req.body);
-
-      res.status(201).json({ status: 'success', data: newTour });
-    } catch (error) {
-      next(new AppError(error, 400));
-    }
-  };
-
-  getTourByID = async (req, res, next) => {
-    try {
-      const { id } = req.params;
-
-      const tour = await TourModel.findById(id).select('-__v');
-
-      if (!tour) {
-        return next(new AppError('tour not found!', 404));
-      }
-
-      res.status(200).json({ status: 'success', data: tour });
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  updateTour = async (req, res, next) => {
-    try {
-      const { id } = req.params;
-
-      // the new option is to return the updated document
-      const tour = await TourModel.findByIdAndUpdate(id, req.body, {
-        new: true,
-        runValidators: true,
-      });
-
-      if (!tour) {
-        return next(new AppError('tour not found!', 404));
-      }
-
-      res.status(200).json({ status: 'success', data: tour });
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  deleteTour = async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      const tour = await TourModel.findByIdAndDelete(id);
-
-      if (!tour) {
-        return next(new AppError('tour not found!', 404));
-      }
-
-      res
-        .status(204)
-        .json({ status: 'success', msg: 'tour deleted successfully' });
-    } catch (error) {
-      next(error);
-    }
-  };
+  deleteTour = this.deleteOne;
 
   getTourStats = async (req, res, next) => {
     try {
@@ -175,11 +92,11 @@ export default class Tours {
     }
   };
 
-  // middleware will be added to the top 5 tours and update the req before calling the getTours function
   aliasTopTours = (req, _, next) => {
-    // only add limit and sort to the req instead of change the whole req as may be the user add some filter or specify the fields to return
     req.query.limit = '5';
     req.query.sort = 'price,-ratingsAverage';
     next();
   };
 }
+
+export default Tours;
