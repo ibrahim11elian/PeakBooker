@@ -38,9 +38,6 @@ const populatePlugin = (schema) => {
     this.populate({
       path: 'user',
       select: 'name',
-    }).populate({
-      path: 'tour',
-      select: 'name duration',
     });
     next();
   };
