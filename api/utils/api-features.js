@@ -16,6 +16,8 @@ export class APIFeatures {
 
     // we do not use await here so we can use additional functionality on it later for ex if there is a sort or a pagination
     this.query.find(JSON.parse(queryStr));
+
+    return this;
   }
 
   sort() {
@@ -28,6 +30,8 @@ export class APIFeatures {
       // default sorting if the user did not specify any sorting
       this.query = this.query.sort('-createdAt');
     }
+
+    return this;
   }
 
   limitFields() {
@@ -39,14 +43,17 @@ export class APIFeatures {
       // default fields that will be returned if the user did not specify any fields
       this.query = this.query.select(['-__v']);
     }
+    return this;
   }
 
-  async paginate() {
+  paginate() {
     // add pagination (if the user did not specify a page it will return first 100 documents)
     // convert to number
     const page = this.queryString.page * 1 || 1;
     const limit = this.queryString.limit * 1 || 100;
     const skip = (page - 1) * limit;
     this.query = this.query.skip(skip).limit(limit);
+
+    return this;
   }
 }
