@@ -107,6 +107,13 @@ const tourSchema = new mongoose.Schema(
   },
 );
 
+// virtual populate
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour',
+  localField: '_id',
+});
+
 const populatePlugin = (schema) => {
   const applyPopulate = function (next) {
     this.populate({
