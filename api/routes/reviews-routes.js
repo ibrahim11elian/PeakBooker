@@ -9,15 +9,29 @@ const router = Router({
 const auth = new authController();
 const reviews = new ReviewController();
 
+router.use(auth.protect);
+
 router
   .route('/')
   .get(reviews.aliasGetTourReviews, reviews.getReviews)
-  .post(auth.protect, reviews.setTourAndUserIds, reviews.createReview);
+  .post(
+    auth.restrictTo('user'),
+    reviews.setTourAndUserIds,
+    reviews.createReview,
+  );
 
 router
   .route('/:id')
-  .get(auth.protect, reviews.getReviewById)
-  .patch(auth.protect, reviews.updateReview)
-  .delete(auth.protect, reviews.deleteReview);
+  .get(reviews.getReviewById)
+  .patch(
+    auth.restrictTo('user', 'admin'),
+    reviews.checkReviewOwner,
+    reviews.updateReview,
+  )
+  .delete(
+    auth.restrictTo('user', 'admin'),
+    reviews.checkReviewOwner,
+    reviews.deleteReview,
+  );
 
 export default router;

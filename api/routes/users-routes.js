@@ -13,22 +13,22 @@ router.post('/login', auth.validateLoginAttempt, auth.login);
 // password routes
 router.post('/forgotPassword', auth.forgotPassword);
 router.patch('/resetPassword/:token', auth.resetPassword);
-router.patch('/updatePassword', auth.protect, auth.updatePassword);
+
+// adding protect middleware to all the routes that coming after that
+router.use(auth.protect);
 
 // current user control routes
-router.get('/me', auth.protect, users.getMe, users.getUserByID);
-router.patch('/updateMe', auth.protect, users.updateMe);
-router.delete('/deleteMe', auth.protect, users.deleteMe);
+router.get('/me', users.getMe, users.getUserByID);
+router.patch('/updatePassword', auth.updatePassword);
+router.patch('/updateMe', users.updateMe);
+router.delete('/deleteMe', users.deleteMe);
 
-// User Routes
-router
-  .route('/')
-  .all(auth.protect, auth.restrictTo('admin'))
-  .get(users.getAllUsers);
+// adding restriction to all routes that are coming after that
+router.use(auth.restrictTo('admin'));
 
+router.route('/').get(users.getAllUsers);
 router
   .route('/:id')
-  .all(auth.protect, auth.restrictTo('admin'))
   .get(users.getUserByID)
   .patch(users.updateUser)
   .delete(users.deleteUser);
