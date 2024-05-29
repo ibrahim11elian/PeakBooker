@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import TourModel from './tourModel.js';
 
 const reviewsSchema = new mongoose.Schema(
   {
@@ -33,21 +34,60 @@ const reviewsSchema = new mongoose.Schema(
   },
 );
 
-const populatePlugin = (schema) => {
-  const applyPopulate = function (next) {
-    this.populate({
-      path: 'user',
-      select: 'name',
-    });
-    next();
-  };
+reviewsSchema.index({ tour: 1, user: 1 }, { unique: true });
 
-  schema.pre('find', applyPopulate);
-  schema.pre('findOne', applyPopulate);
-  schema.pre('findOneAndUpdate', applyPopulate);
+reviewsSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: 'user',
+    select: 'name photo',
+  });
+  next();
+});
+
+reviewsSchema.statics.calcAverageRatings = async function (tourId) {
+  const stats = await this.aggregate([
+    {
+      $match: { tour: tourId },
+    },
+    {
+      $group: {
+        _id: '$tour',
+        nRating: { $sum: 1 },
+        avgRating: { $avg: '$rating' },
+      },
+    },
+  ]);
+
+  if (stats.length > 0) {
+    await TourModel.findByIdAndUpdate(tourId, {
+      ratingsQuantity: stats[0].nRating,
+      ratingsAverage: stats[0].avgRating,
+    });
+  } else {
+    await TourModel.findByIdAndUpdate(tourId, {
+      ratingsQuantity: 0,
+      ratingsAverage: 4.5, // Default value if no ratings
+    });
+  }
 };
 
-reviewsSchema.plugin(populatePlugin);
+reviewsSchema.post('save', function () {
+  this.constructor.calcAverageRatings(this.tour);
+});
+
+reviewsSchema.pre(/^findOneAnd/, async function (next) {
+  // pass the date from pre to post middleware
+  // reference the model to fetch the document before the update operation.
+  this.r = await this.model.findOne(this.getQuery());
+  next();
+});
+
+reviewsSchema.post(/^findOneAnd/, async function () {
+  // Use the document retrieved in pre middleware to update the average ratings
+  if (this.r) {
+    await this.r.constructor.calcAverageRatings(this.r.tour);
+  }
+});
 
 const Review = mongoose.model('Review', reviewsSchema);
 
