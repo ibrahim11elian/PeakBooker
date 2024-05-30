@@ -54,10 +54,23 @@ class AuthController {
 
     const token = this.generateToken({ id: user._id });
 
+    this.sendTokenCookie(token, res);
+
     res.status(200).json({
       status: 'success',
       message: 'Logged in successfully',
       token,
+    });
+  };
+
+  logout = (req, res) => {
+    res.cookie('jwt', 'logged out', {
+      expires: new Date(Date.now() + 10 * 1000),
+      httpOnly: true,
+    });
+
+    res.status(200).json({
+      status: 'success',
     });
   };
 
@@ -169,7 +182,10 @@ class AuthController {
         req.headers.authorization.startsWith('Bearer')
       ) {
         token = req.headers.authorization.split(' ')[1];
+      } else if (req.cookies.jwt) {
+        token = req.cookies.jwt;
       }
+
       if (!token) {
         return next(
           new AppError(
@@ -296,6 +312,8 @@ class AuthController {
       // send jwt token to the user
       const newToken = this.generateToken({ id: user._id });
 
+      this.sendTokenCookie(newToken, res);
+
       res.status(200).json({
         status: 'success',
         message: 'the password was reset successfully',
@@ -334,6 +352,9 @@ class AuthController {
       await user.save();
 
       const token = this.generateToken({ id: user._id });
+
+      this.sendTokenCookie(token, res);
+
       res.status(200).json({
         status: 'success',
         message: 'Password updated successfully',
