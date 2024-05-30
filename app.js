@@ -5,6 +5,7 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import hpp from 'hpp';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 
 import AppError from './api/utils/error.js';
 import errorHandler from './api/controllers/errorController.js';
@@ -21,6 +22,7 @@ app.use(helmet());
 // Body parser
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 // Use morgan middleware for logging HTTP requests
 // Custom Morgan format string for JSON logging
