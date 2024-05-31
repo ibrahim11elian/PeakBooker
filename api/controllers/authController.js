@@ -31,8 +31,8 @@ class AuthController {
 
       const token = this.generateToken({ id: createdUser._id });
 
-      // const url = `${req.protocol}://${req.get('host')}/me`;
-      // await new Email(createdUser, url).sendWelcome();
+      const url = `${req.protocol}://${req.get('host')}/me`;
+      await new Email(createdUser, url).sendWelcome();
 
       this.sendTokenCookie(token, res);
 
@@ -258,14 +258,7 @@ class AuthController {
 
       // send it to the user's email
       const resetUrl = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${passwordToken}`;
-      const email = new Email();
-
-      const message = `If you forgot your password you can reset it from here: ${resetUrl} \nIf you not forgot it pleas ignore this email.`;
-      await email.sendEmail({
-        email: user.email,
-        subject: 'Password reset token (valid for 10 min)',
-        message,
-      });
+      await new Email(user, resetUrl).sendResetPassword();
 
       res.status(200).json({
         status: 'success',
