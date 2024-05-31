@@ -21,7 +21,12 @@ router.use(auth.protect);
 // current user control routes
 router.get('/me', users.getMe, users.getUserByID);
 router.patch('/updatePassword', auth.updatePassword);
-router.patch('/updateMe', users.updateMe);
+router.patch(
+  '/updateMe',
+  users.uploadUserPhoto,
+  users.resizeUserPhoto,
+  users.updateMe,
+);
 router.delete('/deleteMe', users.deleteMe);
 
 // adding restriction to all routes that are coming after that

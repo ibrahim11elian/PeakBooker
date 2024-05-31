@@ -29,12 +29,26 @@ router.route('/distances/:latlng/unit/:unit').get(tours.getDistances);
 router
   .route('/')
   .get(tours.getTours)
-  .post(auth.protect, auth.restrictTo('admin'), tours.createNewTour);
+  .post(
+    auth.protect,
+    auth.restrictTo('admin'),
+    tours.uploadTourImages,
+    tours.resizeTourImages,
+    tours.clearTourReq,
+    tours.createNewTour,
+  );
 
 router
   .route('/:id')
   .get(tours.getTourByID)
-  .put(auth.protect, auth.restrictTo('admin'), tours.updateTour)
+  .put(
+    auth.protect,
+    auth.restrictTo('admin'),
+    tours.uploadTourImages,
+    tours.resizeTourImages,
+    tours.clearTourReq,
+    tours.updateTour,
+  )
   .delete(auth.protect, auth.restrictTo('admin'), tours.deleteTour);
 
 export default router;
