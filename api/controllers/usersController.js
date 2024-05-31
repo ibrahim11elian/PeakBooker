@@ -1,6 +1,9 @@
+import sharp from 'sharp';
 import UserModel from '../models/userModel.js';
 import AppError from '../utils/error.js';
 import BaseController from './baseController.js';
+import Uploader from '../utils/imageUploader.js';
+const uploader = new Uploader();
 
 export default class Users extends BaseController {
   constructor() {
@@ -27,10 +30,13 @@ export default class Users extends BaseController {
       }
 
       const { email, name } = req.body;
+
+      const photo = req.file ? req.file.filename : undefined;
+
       const { id } = req.user;
       const user = await UserModel.findByIdAndUpdate(
         id,
-        { email, name },
+        { email, name, photo },
         {
           new: true,
           runValidators: true,
@@ -48,6 +54,28 @@ export default class Users extends BaseController {
       const { id } = req.user;
       await UserModel.findByIdAndUpdate(id, { active: false });
       res.status(204).json({ status: 'success', data: null });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadUserPhoto = uploader.upload.single('photo');
+
+  resizeUserPhoto = async (req, res, next) => {
+    if (!req.file) return next();
+    try {
+      req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
+
+      await sharp(req.file.buffer)
+        .resize(500, 500, {
+          fit: 'cover',
+          position: 'center',
+        })
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(`uploads/users/${req.file.filename}`);
+
+      next();
     } catch (error) {
       next(error);
     }
