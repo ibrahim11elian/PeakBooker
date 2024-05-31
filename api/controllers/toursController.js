@@ -1,6 +1,10 @@
+import sharp from 'sharp';
 import TourModel from '../models/tourModel.js';
 import AppError from '../utils/error.js';
+import Uploader from '../utils/imageUploader.js';
 import BaseController from './baseController.js';
+
+const uploader = new Uploader();
 
 class Tours extends BaseController {
   constructor() {
@@ -8,6 +12,14 @@ class Tours extends BaseController {
   }
 
   getTours = this.getAll;
+
+  clearTourReq = (req, res, next) => {
+    // remove the ratingsQuantity and the ratingsAverage from the request as it's calculated automatically
+    delete req.body.ratingsQuantity;
+    delete req.body.ratingsAverage;
+
+    next();
+  };
 
   createNewTour = this.createOne;
 
@@ -173,6 +185,57 @@ class Tours extends BaseController {
         status: 'success',
         data: distances,
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadTourImages = uploader.upload.fields([
+    {
+      name: 'imageCover',
+      maxCount: 1,
+    },
+    {
+      name: 'images',
+      maxCount: 8,
+    },
+  ]);
+
+  resizeTourImages = async (req, res, next) => {
+    if (!req.files || (!req.files.imageCover && !req.files.images))
+      return next();
+    try {
+      if (req.files.imageCover) {
+        req.body.imageCover = `tour-${req.params.id}-${Date.now()}.jpeg`;
+        await sharp(req.files.imageCover[0].buffer)
+          .resize(2000, 1333, {
+            fit: 'cover',
+            position: 'center',
+          })
+          .toFormat('jpeg')
+          .jpeg({ quality: 90 })
+          .toFile(`uploads/tours/covers/${req.body.imageCover}`);
+      }
+
+      if (req.files.images) {
+        req.body.images = [];
+        await Promise.all(
+          req.files.images.map(async (file, i) => {
+            const filename = `tour-${req.params.id}-${Date.now()}-${i + 1}.jpeg`;
+            await sharp(file.buffer)
+              .resize(2000, 1333, {
+                fit: 'cover',
+                position: 'center',
+              })
+              .toFormat('jpeg')
+              .jpeg({ quality: 90 })
+              .toFile(`uploads/tours/images/${filename}`);
+            req.body.images.push(filename);
+          }),
+        );
+      }
+
+      next();
     } catch (error) {
       next(error);
     }
