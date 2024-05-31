@@ -23,7 +23,7 @@ export class ReviewController extends BaseController {
   };
 
   checkReviewOwner = async (req, res, next) => {
-    // NOT FINISHED!
+    // NOT FINISHED! (cause we gave the admin the access to update or delete any review in the prev middleware in the restrictTo middleware)
     // middleware to check if the user performing update or delete on review is the owner of the review or not
     const review = await this.model.findById(req.params.id);
     if (!review) return next(new AppError('No review found with that ID', 404));
