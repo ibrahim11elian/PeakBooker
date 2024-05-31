@@ -11,6 +11,7 @@ import AppError from './api/utils/error.js';
 import errorHandler from './api/controllers/errorController.js';
 import { reviewRouter, tourRouter, userRouter } from './api/routes/index.js';
 import logger from './api/utils/logger.js';
+import folderBuilder from './api/utils/folder-builder.js';
 
 // Instantiate the App
 export const app = express();
@@ -80,6 +81,9 @@ app.use('/api', limiter);
 app.get('/', (_, res) => {
   res.status(200).send('<h2> Hello from the server side </h2>');
 });
+
+// util function make suer that the uploads folder exists
+folderBuilder();
 
 app.use(express.static('./dev-data/img'));
 
