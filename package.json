@@ -1,6 +1,9 @@
 {
   "name": "booking-app",
   "version": "1.0.0",
+  "engines": {
+    "node": "^20"
+  },
   "description": "Booking Application from jonas Node.js in Udemy",
   "main": "server.js",
   "type": "module",
@@ -30,7 +33,9 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-mongo-sanitize": "^2.2.0",
@@ -46,6 +51,7 @@
     "prettier": "3.2.5",
     "pug": "^3.0.3",
     "sharp": "^0.33.4",
+    "stripe": "^15.8.0",
     "validator": "^13.12.0",
     "winston": "^3.13.0",
     "xss-clean": "^0.1.4"
