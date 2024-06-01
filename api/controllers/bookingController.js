@@ -68,25 +68,27 @@ class BookingController extends BaseController {
   };
 
   webhookCheckout = async (req, res, next) => {
+    const stripe = new Stripe(process.env.STRIPE_KEY);
     const signature = req.headers['stripe-signature'];
     let event;
+
     try {
-      event = await new Stripe(process.env.STRIPE_KEY).webhooks.constructEvent(
+      event = stripe.webhooks.constructEvent(
         req.body,
         signature,
         process.env.WEBHOOK_SECRET,
       );
+
+      if (event.type === 'checkout.session.completed') {
+        this.createBookingCheckout(event.data.object);
+      }
+
+      res.status(200).json({
+        received: true,
+      });
     } catch (error) {
       next(error);
     }
-
-    if (event.type === 'checkout.session.completed') {
-      this.createBookingCheckout(event.data.object);
-    }
-
-    res.status(200).json({
-      received: true,
-    });
   };
 
   createBookingCheckout = async (session) => {
