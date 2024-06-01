@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import AuthController from '../controllers/authController.js';
 import Users from '../controllers/usersController.js';
+import bookingRouter from './booking-routes.js';
 
 const users = new Users();
 const auth = new AuthController();
 const router = Router();
+
+router.use('/bookings', bookingRouter);
 
 // account routes
 router.post('/signup', auth.signup);
