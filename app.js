@@ -23,7 +23,8 @@ import BookingController from './api/controllers/bookingController.js';
 
 // Instantiate the App
 export const app = express();
-app.enable('trust proxy');
+app.set('trust proxy', 1);
+app.get('/ip', (request, response) => response.send(request.ip));
 // Middlewares
 // set security http headers
 app.use(helmet());
