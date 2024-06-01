@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
@@ -5,13 +6,20 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import hpp from 'hpp';
 import morgan from 'morgan';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
-
+import compression from 'compression';
 import AppError from './api/utils/error.js';
 import errorHandler from './api/controllers/errorController.js';
-import { reviewRouter, tourRouter, userRouter } from './api/routes/index.js';
+import {
+  bookingRouter,
+  reviewRouter,
+  tourRouter,
+  userRouter,
+} from './api/routes/index.js';
 import logger from './api/utils/logger.js';
 import folderBuilder from './api/utils/folder-builder.js';
+import BookingController from './api/controllers/bookingController.js';
 
 // Instantiate the App
 export const app = express();
@@ -20,10 +28,7 @@ export const app = express();
 // set security http headers
 app.use(helmet());
 
-// Body parser
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cors());
 
 // Use morgan middleware for logging HTTP requests
 // Custom Morgan format string for JSON logging
@@ -75,7 +80,25 @@ const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   message: 'Too many requests from this IP, please try again in an hour!',
 });
+
 app.use('/api', limiter);
+
+// Stripe webhook
+// it's here because it work with streams not json
+// so we moved it here before the body parser middleware
+app.post(
+  '/webhook-checkout',
+  express.raw({ type: 'application/json' }),
+  new BookingController().webhookCheckout,
+);
+
+// Body parser
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+// Compress middleware
+app.use(compression());
 
 // Root Route
 app.get('/', (_, res) => {
@@ -85,12 +108,14 @@ app.get('/', (_, res) => {
 // util function make suer that the uploads folder exists
 folderBuilder();
 
-app.use(express.static('./dev-data/img'));
-
+// eslint-disable-next-line no-undef
+const staticPath = path.join(process.cwd(), 'uploads');
+app.use('/static', express.static(staticPath));
 // App Routers
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/bookings', bookingRouter);
 
 // Error
 app.all('*', (_, res, next) => {
