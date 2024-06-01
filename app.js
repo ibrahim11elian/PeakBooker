@@ -30,6 +30,8 @@ app.use(helmet());
 
 app.use(cors());
 
+app.options('*', cors());
+
 // Use morgan middleware for logging HTTP requests
 // Custom Morgan format string for JSON logging
 app.use(
