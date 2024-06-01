@@ -17,9 +17,9 @@ dotenv.config();
 // Connecting to the Database
 mongoose.connect(process.env.LOCAL_DB).then(() => {
   console.log('Connected to the Database');
-  // Starting The Server
 });
 
+// Starting The Server
 const port = process.env.PORT || 3000;
 const server = app.listen(port, () => {
   console.log(`${process.env.NODE_ENV} server is running on port ${port}`);
@@ -35,3 +35,10 @@ function shutDownServer(err) {
     process.exit(1);
   });
 }
+
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
+});
