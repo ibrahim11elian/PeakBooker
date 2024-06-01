@@ -7,15 +7,15 @@ import { app } from './app.js';
 
 dotenv.config();
 
-// let connString = process.env.DB_STRING;
-// const user = process.env.DB_USER;
-// const password = process.env.DB_PASSWORD;
+let connString = process.env.DB_STRING;
+const user = process.env.DB_USER;
+const password = process.env.DB_PASSWORD;
 
-// connString = connString.replace('<USER>', user);
-// connString = connString.replace('<PASSWORD>', password);
+connString = connString.replace('<USER>', user);
+connString = connString.replace('<PASSWORD>', password);
 
 // Connecting to the Database
-mongoose.connect(process.env.LOCAL_DB).then(() => {
+mongoose.connect(connString).then(() => {
   console.log('Connected to the Database');
 });
 
