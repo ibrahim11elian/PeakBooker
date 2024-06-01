@@ -34,7 +34,7 @@ class AuthController {
       const url = `${req.protocol}://${req.get('host')}/me`;
       await new Email(createdUser, url).sendWelcome();
 
-      this.sendTokenCookie(token, res);
+      this.sendTokenCookie(token, req, res);
 
       res.status(201).json({
         status: 'success',
@@ -54,7 +54,7 @@ class AuthController {
 
     const token = this.generateToken({ id: user._id });
 
-    this.sendTokenCookie(token, res);
+    this.sendTokenCookie(token, req, res);
 
     res.status(200).json({
       status: 'success',
@@ -155,20 +155,17 @@ class AuthController {
     return await verify(data, process.env.JWT_SECRET);
   }
 
-  sendTokenCookie = (token, res) => {
-    const cookieOptions = {
+  sendTokenCookie = (token, req, res) => {
+    res.cookie('jwt', token, {
       // the same as the token expires
       expires: new Date(
         Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
       ),
+      // send it in secure connection only (https)
+      secure: req.secure || req.headers('x-forwarded-proto' === 'https'),
       // this will make it unaccessible from the browser
       httpOnly: true,
-    };
-
-    // send it in secure connection only (https)
-    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true;
-
-    res.cookie('jwt', token, cookieOptions);
+    });
   };
 
   // middleware to check if the user is authenticated
@@ -305,7 +302,7 @@ class AuthController {
       // send jwt token to the user
       const newToken = this.generateToken({ id: user._id });
 
-      this.sendTokenCookie(newToken, res);
+      this.sendTokenCookie(newToken, req, res);
 
       res.status(200).json({
         status: 'success',
@@ -346,7 +343,7 @@ class AuthController {
 
       const token = this.generateToken({ id: user._id });
 
-      this.sendTokenCookie(token, res);
+      this.sendTokenCookie(token, req, res);
 
       res.status(200).json({
         status: 'success',

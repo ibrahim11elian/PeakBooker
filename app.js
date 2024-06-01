@@ -23,14 +23,12 @@ import BookingController from './api/controllers/bookingController.js';
 
 // Instantiate the App
 export const app = express();
-
+app.enable('trust proxy');
 // Middlewares
 // set security http headers
 app.use(helmet());
 
 app.use(cors());
-
-app.options('*', cors());
 
 // Use morgan middleware for logging HTTP requests
 // Custom Morgan format string for JSON logging
