@@ -54,7 +54,7 @@ export default class BaseController {
         data: newDocument,
       });
     } catch (error) {
-      next(new AppError(error, 400));
+      next(error);
     }
   };
 
