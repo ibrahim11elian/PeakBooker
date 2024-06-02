@@ -6,7 +6,10 @@ const logger = createLogger({
     format.timestamp(),
     format.json(), // Output logs in JSON format
   ),
-  transports: [new transports.File({ filename: 'app.log' })],
+  transports: [
+    new transports.File({ filename: 'app.log' }),
+    new transports.Console(),
+  ],
 });
 
 export default logger;
