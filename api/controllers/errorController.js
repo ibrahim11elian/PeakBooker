@@ -1,5 +1,6 @@
 /* eslint-disable no-undef */
 import AppError from '../utils/error.js';
+import logger from '../utils/logger.js';
 
 export default function (err, req, res, next) {
   err.statusCode = err.statusCode || 500;
@@ -19,6 +20,7 @@ export default function (err, req, res, next) {
     if (error.name === 'ValidationError') error = handleValidationError(error);
     // this error is specific to mongo not to mongoose so i need to extract the code of duplicate error from the massage
     if (error.message.match(/E11000/g)) error = handleDuplicateFieldsDB(error);
+    if (error.code === 16755) error = handleGeoKeysError(); // also mongo error (Geo keys error)
     if (error.name === 'JsonWebTokenError') error = handleJWTError(error);
     if (error.name === 'TokenExpiredError')
       error = handleTokenExpiredError(error);
@@ -66,9 +68,17 @@ function handleValidationError(error) {
 }
 
 function handleDuplicateFieldsDB(err) {
-  const value = err.message.match(/(["'])(\\?.)*?\1/)[0];
+  // Extract the duplicate keys and values from the error message
+  const matches = err.message.match(/dup key: {([^}]+)}/);
+  const fields = matches[1].split(',').map((field) => field.trim());
 
-  const message = `Duplicate field value: ${value}. Please use another value!`;
+  // Construct a dynamic error message
+  const fieldMessages = fields.map((field) => {
+    const [key, value] = field.split(':').map((part) => part.trim());
+    return `${key}: ${value}`;
+  });
+
+  const message = `Duplicate field value(s): ${fieldMessages.join(', ')}. Please use another value(s)!`;
   return new AppError(message, 400);
 }
 
@@ -78,4 +88,11 @@ function handleJWTError() {
 
 function handleTokenExpiredError() {
   return new AppError('Token has expired.', 401);
+}
+
+function handleGeoKeysError() {
+  // Construct a dynamic error message
+  const message = `Invalid geo keys. Point must be an array or object with the correct format.`;
+
+  return new AppError(message, 400);
 }
