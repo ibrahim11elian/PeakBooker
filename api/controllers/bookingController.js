@@ -14,7 +14,7 @@ class BookingController extends BaseController {
 
   getAllBookings = this.getAll;
 
-  getBooking = this.getOne;
+  getBooking = this.getOne();
 
   updateBooking = this.updateOne;
 
