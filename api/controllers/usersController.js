@@ -3,6 +3,7 @@ import UserModel from '../models/userModel.js';
 import AppError from '../utils/error.js';
 import BaseController from './baseController.js';
 import Uploader from '../utils/imageUploader.js';
+import { bucket } from '../utils/firebase-config.js';
 const uploader = new Uploader();
 
 export default class Users extends BaseController {
@@ -31,7 +32,7 @@ export default class Users extends BaseController {
 
       const { email, name } = req.body;
 
-      const photo = req.file ? req.file.filename : undefined;
+      const photo = req.file ? req.body.photo : undefined;
 
       const { id } = req.user;
       const user = await UserModel.findByIdAndUpdate(
@@ -63,17 +64,54 @@ export default class Users extends BaseController {
 
   resizeUserPhoto = async (req, res, next) => {
     if (!req.file) return next();
-    try {
-      req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
 
-      await sharp(req.file.buffer)
+    try {
+      req.file.filename = `user-${req.user.id}.jpeg`;
+
+      const resizedBuffer = await sharp(req.file.buffer)
         .resize(500, 500, {
           fit: 'cover',
           position: 'center',
         })
         .toFormat('jpeg')
         .jpeg({ quality: 90 })
-        .toFile(`uploads/users/${req.file.filename}`);
+        .toBuffer();
+
+      req.file.buffer = resizedBuffer;
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Firebase Upload
+  handleFileUpload = async (req, res, next) => {
+    if (!req.file) {
+      return next();
+    }
+
+    try {
+      const blob = bucket.file(`uploads/users/${req.file.filename}`);
+      const blobStream = blob.createWriteStream({
+        metadata: {
+          contentType: req.file.mimetype,
+        },
+      });
+
+      await new Promise((resolve, reject) => {
+        blobStream.on('error', (err) => {
+          reject(err);
+        });
+
+        blobStream.on('finish', () => {
+          const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${blob.name.split('/').join('%2F')}?alt=media`;
+          req.body.photo = publicUrl;
+          resolve();
+        });
+
+        blobStream.end(req.file.buffer);
+      });
 
       next();
     } catch (error) {

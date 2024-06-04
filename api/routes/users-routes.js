@@ -13,6 +13,7 @@ router.use('/bookings', bookingRouter);
 router.post('/signup', auth.signup);
 router.post('/login', auth.validateLoginAttempt, auth.login);
 router.get('/logout', auth.logout);
+router.get('/verify-email', auth.verifyEmail);
 
 // password routes
 router.post('/forgotPassword', auth.forgotPassword);
@@ -28,6 +29,7 @@ router.patch(
   '/updateMe',
   users.uploadUserPhoto,
   users.resizeUserPhoto,
+  users.handleFileUpload, // upload to Firebase
   users.updateMe,
 );
 router.delete('/deleteMe', users.deleteMe);
