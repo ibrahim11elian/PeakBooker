@@ -70,6 +70,10 @@ class Email {
     await this.send('welcome', 'welcome to the tours family');
   };
 
+  sendVerification = async () => {
+    await this.send('verify', 'Booking App Email Verification');
+  };
+
   sendResetPassword = async () => {
     await this.send(
       'passwordReset',

@@ -3,7 +3,7 @@
 import crypto from 'crypto';
 import { promisify } from 'util';
 import jwt from 'jsonwebtoken';
-import User from '../models/userModel.js';
+import UserModel from '../models/userModel.js';
 import AppError from '../utils/error.js';
 import Email from '../utils/email.js';
 import logger from '../utils/logger.js';
@@ -14,35 +14,27 @@ class AuthController {
   signup = async (req, res, next) => {
     try {
       const newUser = req.body;
-      const existingUser = await User.findOne({ email: newUser.email });
+      const existingUser = await UserModel.findOne({ email: newUser.email });
 
       if (existingUser) {
         return next(new AppError('This user is already exist!', 400));
       }
 
-      const createdUser = await User.create({
+      const createdUser = await UserModel.create({
         name: newUser.name,
         email: newUser.email,
         password: newUser.password,
       });
+      const verificationToken = createdUser.createEmailVerificationToken();
+      await createdUser.save({ validateBeforeSave: false });
 
-      // remove the password from the created user so we did not send it to the user
-      createdUser.password = undefined;
+      const url = `${req.protocol}://${req.get('host')}/api/v1/users/verify-email?token=${verificationToken}`;
+      await new Email(createdUser, url).sendVerification();
 
-      const token = this.generateToken({ id: createdUser._id });
-
-      const url = `${req.protocol}://${req.get('host')}/me`;
-      await new Email(createdUser, url).sendWelcome();
-
-      this.sendTokenCookie(token, req, res);
-
-      res.status(201).json({
+      res.status(200).json({
         status: 'success',
-        message: 'User created successfully',
-        data: {
-          user: createdUser,
-        },
-        token,
+        message:
+          'Registration successful, please check your email for verification link.',
       });
     } catch (error) {
       next(error);
@@ -89,16 +81,26 @@ class AuthController {
       }
 
       // Retrieve the user by email, ensure the user is active, and select the required fields
-      const user = await User.findOne({ email }).select([
+      const user = await UserModel.findOne({ email }).select([
         '+password',
         '+loginAttempts',
         '+loginExpires',
         '+lastLoginAttempt',
+        '+isVerified',
       ]);
 
       // Check if the user exists
       if (!user) {
         return next(new AppError('Invalid email or password!', 401));
+      }
+
+      if (!user.isVerified) {
+        return next(
+          new AppError(
+            'You account is not verified yet, please check your email for verification link.',
+            401,
+          ),
+        );
       }
 
       // Check login attempt limits
@@ -194,11 +196,20 @@ class AuthController {
 
       // check if the user exists
       let { id, iat } = await this.verifyToken(token);
-      const user = await User.findById(id);
+      const user = await UserModel.findById(id).select('+isVerified');
       if (!user) {
         return next(
           new AppError(
             'The user belonging to this token does no longer exist.',
+            401,
+          ),
+        );
+      }
+
+      if (!user.isVerified) {
+        return next(
+          new AppError(
+            'You account is not verified, please check your email for verification link. ',
             401,
           ),
         );
@@ -222,7 +233,7 @@ class AuthController {
     }
   };
 
-  restrictTo = (...role) => {
+  restrictTo(...role) {
     return (req, res, next) => {
       // this user we get from the prev middleware which is 'protect'
       const { user } = req;
@@ -237,11 +248,11 @@ class AuthController {
       }
       next();
     };
-  };
+  }
 
   forgotPassword = async (req, res, next) => {
     // get user based on the email
-    const user = await User.findOne({ email: req.body.email });
+    const user = await UserModel.findOne({ email: req.body.email });
 
     if (!user) {
       return next(new AppError('there is no user with that email', 404));
@@ -283,7 +294,7 @@ class AuthController {
         .update(token)
         .digest('hex');
 
-      const user = await User.findOne({
+      const user = await UserModel.findOne({
         passwordResetToken: hashedToken,
         passwordResetExpires: { $gt: Date.now() },
       });
@@ -329,7 +340,7 @@ class AuthController {
 
       // this one we get from the protect middleware
       const { _id } = req.user;
-      const user = await User.findById(_id).select('+password');
+      const user = await UserModel.findById(_id).select('+password');
 
       // check if the password is correct
       if (!(await user.comparePassword(password, user.password))) {
@@ -351,6 +362,45 @@ class AuthController {
         token,
       });
     } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyEmail = async (req, res, next) => {
+    try {
+      const confirmToken = req.query.token;
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(confirmToken)
+        .digest('hex');
+
+      const user = await UserModel.findOne({
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: { $gt: Date.now() },
+      }).select('+isVerified');
+
+      if (!user) {
+        return next(
+          new AppError(
+            'Email verification token is invalid or has expired.',
+            400,
+          ),
+        );
+      }
+
+      user.isVerified = true;
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      await user.save();
+
+      const url = `${req.protocol}://${req.get('host')}/me`;
+      await new Email(user, url).sendWelcome();
+
+      res.status(201).json({
+        status: 'success',
+        message: 'Email has been successfully verified, You can login now',
+      });
+    } catch (err) {
       next(error);
     }
   };
