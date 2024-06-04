@@ -27,7 +27,7 @@ class BookingController extends BaseController {
       const tour = await TourModel.findById(tourId);
 
       if (!tour) {
-        next(new AppError('This tour does not exist!', 404));
+        return next(new AppError('This tour does not exist!', 404));
       }
 
       const session = await new Stripe(
@@ -45,9 +45,7 @@ class BookingController extends BaseController {
               product_data: {
                 name: tour.name,
                 description: tour.description,
-                images: [
-                  `${req.protocol}://${req.get('host')}/products/tours/covers/${tour.imageCover}`,
-                ],
+                images: [tour.imageCover],
               },
               currency: 'usd',
               unit_amount: tour.price * 100,
@@ -80,7 +78,7 @@ class BookingController extends BaseController {
       );
 
       if (event.type === 'checkout.session.completed') {
-        this.createBookingCheckout(event.data.object);
+        await this.createBookingCheckout(event.data.object);
       }
 
       res.status(200).json({
