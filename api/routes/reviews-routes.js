@@ -16,7 +16,7 @@ router
   .get(reviews.aliasGetTourReviews, reviews.getReviews)
   .post(
     auth.restrictTo('user'),
-    reviews.setTourAndUserIds,
+    reviews.checkReviewBooking,
     reviews.createReview,
   );
 
