@@ -18,7 +18,6 @@ import {
   userRouter,
 } from './api/routes/index.js';
 import logger from './api/utils/logger.js';
-import folderBuilder from './api/utils/folder-builder.js';
 import BookingController from './api/controllers/bookingController.js';
 
 // Instantiate the App
@@ -89,7 +88,7 @@ app.use('/api', limiter);
 
 // Stripe webhook
 // it's here because it work with streams not json
-// so we moved it here before the body parser middleware
+// so i moved it here before the body parser middleware
 app.post(
   '/webhook-checkout',
   express.raw({ type: 'application/json' }),
@@ -110,7 +109,7 @@ app.get('/', (_, res) => {
 });
 
 // util function make suer that the uploads folder exists
-folderBuilder();
+// folderBuilder(); // NOW We Use 'Firebase'
 
 // eslint-disable-next-line no-undef
 const staticPath = path.join(process.cwd(), 'uploads');
