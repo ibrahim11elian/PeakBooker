@@ -33,8 +33,11 @@ router
     auth.protect,
     auth.restrictTo('admin'),
     tours.uploadTourImages,
-    tours.resizeTourImages,
+    tours.checkTour,
     tours.clearTourReq,
+    tours.resizeTourImages,
+    tours.handleTourImagesUpload,
+    tours.parseFormData,
     tours.createNewTour,
   );
 
@@ -45,8 +48,11 @@ router
     auth.protect,
     auth.restrictTo('admin'),
     tours.uploadTourImages,
-    tours.resizeTourImages,
+    tours.checkTour,
     tours.clearTourReq,
+    tours.resizeTourImages,
+    tours.handleTourImagesUpload,
+    tours.parseFormData,
     tours.updateTour,
   )
   .delete(auth.protect, auth.restrictTo('admin'), tours.deleteTour);
