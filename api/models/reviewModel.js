@@ -44,6 +44,24 @@ reviewsSchema.pre(/^find/, function (next) {
   next();
 });
 
+reviewsSchema.pre(/.*(u|U)pdate.*$|save/, function (next) {
+  // remove the user and the tour id from any update query
+  if (this.isNew) return next();
+  // Get the update object
+  const update = this.getUpdate();
+
+  // Remove user and tour from the update object
+  if (update.$set) {
+    delete update.$set.user;
+    delete update.$set.tour;
+  } else {
+    delete update.user;
+    delete update.tour;
+  }
+
+  next();
+});
+
 reviewsSchema.statics.calcAverageRatings = async function (tourId) {
   const stats = await this.aggregate([
     {
