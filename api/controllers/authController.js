@@ -7,6 +7,7 @@ import UserModel from '../models/userModel.js';
 import AppError from '../utils/error.js';
 import Email from '../utils/email.js';
 import logger from '../utils/logger.js';
+import RefreshToken from '../models/refreshTokenModel.js';
 
 class AuthController {
   constructor() {}
@@ -41,29 +42,86 @@ class AuthController {
     }
   };
 
-  login = (req, res) => {
+  login = async (req, res, next) => {
     const { user } = req;
 
     const token = this.generateToken({ id: user._id });
 
-    this.sendTokenCookie(token, req, res);
+    try {
+      const refreshToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_REFRESH_SECRET,
+      );
 
-    res.status(200).json({
-      status: 'success',
-      message: 'Logged in successfully',
-      token,
-    });
+      await RefreshToken.create({
+        token: refreshToken,
+        user: user._id,
+      });
+
+      this.sendTokenCookie(token, req, res);
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Logged in successfully',
+        accessToken: token,
+        refreshToken,
+      });
+    } catch (error) {
+      next(error);
+    }
   };
 
-  logout = (req, res) => {
-    res.cookie('jwt', 'logged out', {
-      expires: new Date(Date.now() + 10 * 1000),
-      httpOnly: true,
-    });
+  logout = async (req, res, next) => {
+    const { token } = req.body;
 
-    res.status(200).json({
-      status: 'success',
-    });
+    if (!token) {
+      return next(new AppError('Refresh token required', 400));
+    }
+    try {
+      const verify = promisify(jwt.verify);
+      const decoded = await verify(token, process.env.JWT_REFRESH_SECRET);
+
+      const storedToken = await RefreshToken.findOneAndDelete({
+        token: token,
+        user: decoded.id,
+      });
+
+      if (!storedToken) {
+        return next(new AppError('Invalid refresh token', 401));
+      }
+
+      res.clearCookie('jwt');
+
+      res.status(200).json({
+        status: 'success',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  logoutAll = async (req, res, next) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return next(new AppError('Refresh token required', 400));
+      }
+
+      const verify = promisify(jwt.verify);
+      const decoded = await verify(token, process.env.JWT_REFRESH_SECRET);
+
+      await RefreshToken.deleteMany({ user: decoded.id });
+
+      res.clearCookie('jwt');
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Logged out successfully from all devices.',
+      });
+    } catch (error) {
+      next(error);
+    }
   };
 
   validateLoginAttempt = async (req, res, next) => {
@@ -152,6 +210,51 @@ class AuthController {
     });
   }
 
+  refreshToken = async (req, res, next) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return next(new AppError('Token required', 400));
+      }
+
+      const verify = promisify(jwt.verify);
+      await verify(token, process.env.JWT_REFRESH_SECRET);
+
+      const storedToken = await RefreshToken.findOne({ token }).populate(
+        'user',
+      );
+
+      if (!storedToken) {
+        return next(new AppError('Invalid token', 401));
+      }
+
+      const newToken = this.generateToken({ id: storedToken.user._id });
+
+      const newRefreshToken = jwt.sign(
+        { id: storedToken.user._id },
+        process.env.JWT_REFRESH_SECRET,
+      );
+
+      await RefreshToken.create({
+        token: newRefreshToken,
+        user: storedToken.user._id,
+      });
+
+      await RefreshToken.findByIdAndDelete(storedToken._id);
+
+      this.sendTokenCookie(newToken, req, res);
+
+      res.status(200).json({
+        status: 'success',
+        accessToken: newToken,
+        refreshToken: newRefreshToken,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   async verifyToken(data) {
     const verify = promisify(jwt.verify);
     return await verify(data, process.env.JWT_SECRET);
@@ -161,10 +264,10 @@ class AuthController {
     res.cookie('jwt', token, {
       // the same as the token expires
       expires: new Date(
-        Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
+        Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 60 * 1000,
       ),
       // send it in secure connection only (https)
-      secure: req.secure || req.headers('x-forwarded-proto' === 'https'),
+      // secure: req.secure || req.headers('x-forwarded-proto' === 'https'),
       // this will make it unaccessible from the browser
       httpOnly: true,
     });
@@ -400,7 +503,53 @@ class AuthController {
         status: 'success',
         message: 'Email has been successfully verified, You can login now',
       });
-    } catch (err) {
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resendVerificationEmail = async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      const user = await UserModel.findOne({ email }).select([
+        '+isVerified',
+        '+emailVerificationExpires',
+        '+emailVerificationToken',
+      ]);
+
+      if (!user) {
+        return next(new AppError('User not found.', 400));
+      }
+
+      if (user.isVerified) {
+        return next(new AppError('Email is already verified.', 400));
+      }
+
+      if (
+        user.emailVerificationExpires &&
+        user.emailVerificationExpires > Date.now()
+      ) {
+        return next(
+          new AppError('Email verification token is still valid.', 400),
+        );
+      }
+
+      // Clear previous token and expiration date
+      user.emailVerificationToken = undefined;
+      user.emailVerificationExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      const verificationToken = user.createEmailVerificationToken();
+      await user.save({ validateBeforeSave: false });
+
+      const url = `${req.protocol}://${req.get('host')}/api/v1/users/verify-email?token=${verificationToken}`;
+      await new Email(user, url).sendVerification();
+
+      res.status(200).json({
+        status: 'success',
+        message: 'New verification email sent.',
+      });
+    } catch (error) {
       next(error);
     }
   };
