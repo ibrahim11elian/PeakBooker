@@ -97,6 +97,8 @@ const tourSchema = new mongoose.Schema(
       },
     ],
     guides: [{ type: mongoose.Schema.ObjectId, ref: 'User' }],
+    participants: [Number],
+    soldOut: [Boolean],
   },
   {
     toJSON: {
@@ -137,6 +139,13 @@ tourSchema.plugin(populatePlugin);
 tourSchema.virtual('durationWeeks').get(function () {
   return (this.duration / 7).toFixed(2);
 });
+
+tourSchema.statics.checkTourStatus = async function (tourId, date) {
+  const tour = await this.findById(tourId);
+
+  const dateIndex = tour.startDates.indexOf(new Date(date).toString());
+  return tour.soldOut[dateIndex];
+};
 
 const Tour = mongoose.model('Tour', tourSchema);
 
