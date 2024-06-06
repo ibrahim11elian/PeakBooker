@@ -1,10 +1,10 @@
 {
-  "name": "booking-app",
+  "name": "peak-booker",
   "version": "1.0.0",
   "engines": {
     "node": "^20"
   },
-  "description": "Booking Application from jonas Node.js in Udemy",
+  "description": "PeakBooker is an innovative booking app designed to make reservations and appointments effortless. Ideal for travel, and more, PeakBooker ensures a smooth and efficient booking experience.",
   "main": "server.js",
   "type": "module",
   "scripts": {

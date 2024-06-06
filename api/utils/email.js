@@ -11,7 +11,7 @@ class Email {
     this.to = user.email;
     this.firstName = user.name.split(' ')[0];
     this.url = url;
-    this.from = `Booking Application <${process.env.EMAIL_FROM}>`;
+    this.from = `PeakBooker <${process.env.EMAIL_FROM}>`;
   }
 
   createNewTransport() {
@@ -67,17 +67,17 @@ class Email {
   };
 
   sendWelcome = async () => {
-    await this.send('welcome', 'welcome to the tours family');
+    await this.send('welcome', 'welcome to PeakBooker family');
   };
 
   sendVerification = async () => {
-    await this.send('verify', 'Booking App Email Verification');
+    await this.send('verify', 'PeakBooker Email Verification');
   };
 
   sendResetPassword = async () => {
     await this.send(
       'passwordReset',
-      'Booking App Account Reset Password (valid for 10 min)',
+      'PeakBooker Account Reset Password (valid for 10 min)',
     );
   };
 }

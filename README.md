@@ -1,4 +1,4 @@
-# Booking App
+# PeakBooker App
 
 ## Documentation
 
