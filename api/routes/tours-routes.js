@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Tours from '../controllers/toursController.js';
 import AuthController from '../controllers/authController.js';
 import reviewRouter from './reviews-routes.js';
+import bookingRouter from './booking-routes.js';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const auth = new AuthController();
 
 // use the reviews routes to enable merging routes
 router.use('/:tourId/reviews', reviewRouter);
+router.use('/:tourId/bookings', bookingRouter);
 
 router.route('/top-5-cheap').get(tours.aliasTopTours, tours.getTours);
 
