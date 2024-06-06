@@ -7,13 +7,16 @@ const users = new Users();
 const auth = new AuthController();
 const router = Router();
 
-router.use('/bookings', bookingRouter);
+router.use('/:userId/bookings', bookingRouter);
 
 // account routes
 router.post('/signup', auth.signup);
 router.post('/login', auth.validateLoginAttempt, auth.login);
-router.get('/logout', auth.logout);
+router.delete('/logout', auth.logout);
+router.delete('/logout-all', auth.logoutAll);
 router.get('/verify-email', auth.verifyEmail);
+router.post('/resend-verification-email', auth.resendVerificationEmail);
+router.post('/refresh-token', auth.refreshToken);
 
 // password routes
 router.post('/forgotPassword', auth.forgotPassword);
