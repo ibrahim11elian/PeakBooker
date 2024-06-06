@@ -22,6 +22,8 @@ class Tours extends BaseController {
     delete req.body.ratingsAverage;
     delete req.body.images;
     delete req.body.imageCover;
+    delete req.body.participants;
+    delete req.body.soldOut;
 
     next();
   };
