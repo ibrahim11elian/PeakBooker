@@ -15,7 +15,11 @@ router.get('/checkout-session/:tourId', bookings.getCheckoutSession);
 
 router.use(auth.restrictTo('admin'));
 
-router.route('/').get(bookings.getAllBookings).post(bookings.createBooking);
+router
+  .route('/')
+  .all(bookings.setQuery)
+  .get(bookings.getAllBookings)
+  .post(bookings.checkTourSoldOut, bookings.createBooking);
 
 router
   .route('/:id')
