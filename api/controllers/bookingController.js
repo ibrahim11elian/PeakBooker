@@ -20,14 +20,57 @@ class BookingController extends BaseController {
 
   deleteBooking = this.deleteOne;
 
+  setQuery = (req, res, next) => {
+    // This middleware is for allowing to get tour bookings or user bookings using nested routes
+    if (req.params.tourId)
+      (req.query.tour = req.params.tourId), (req.body.tour = req.params.tourId);
+    if (req.params.userId)
+      (req.query.user = req.params.userId), (req.body.user = req.params.userId);
+
+    next();
+  };
+
+  checkTourSoldOut = async (req, res, next) => {
+    const { tour, tourDate } = req.body;
+    try {
+      // check the tour if it's sold out
+      if (await TourModel.checkTourStatus(tour, tourDate)) {
+        next(new AppError('This tour is sold out on this date', 400));
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getCheckoutSession = async (req, res, next) => {
     try {
       const { tourId } = req.params;
+      const { tourDate } = req.body;
+
+      if (!tourDate) {
+        return next(new AppError('You have to add the tour date', 400));
+      }
 
       const tour = await TourModel.findById(tourId);
 
       if (!tour) {
         return next(new AppError('This tour does not exist!', 404));
+      }
+
+      if (!tour.startDates.includes(new Date(tourDate).toString())) {
+        return next(
+          new AppError(
+            'Tour date is not available, please choose a valid tour date',
+            400,
+          ),
+        );
+      }
+
+      // check the tour if it's sold out
+      if (await BookingModel.checkTourStatus(tour, tourDate)) {
+        next(new AppError('This tour is sold out on this date', 400));
       }
 
       const session = await new Stripe(
@@ -38,6 +81,9 @@ class BookingController extends BaseController {
         cancel_url: `${req.protocol}://${req.get('host')}/api/v1/tours/${tourId}`,
         customer_email: req.user.email,
         client_reference_id: tourId,
+        metadata: {
+          tourDate,
+        },
         mode: 'payment',
         line_items: [
           {
@@ -92,6 +138,7 @@ class BookingController extends BaseController {
   createBookingCheckout = async (session) => {
     const tourId = session.client_reference_id;
     const userEmail = session.customer_email;
+    const { tourDate } = session.metadata;
     const price = session.amount_total / 100;
     const paid = true;
     // const paymentMethod = session.payment_method_types[0];
@@ -107,6 +154,7 @@ class BookingController extends BaseController {
       tour: tourId,
       user: user.id,
       price,
+      tourDate,
       paid,
     });
   };
