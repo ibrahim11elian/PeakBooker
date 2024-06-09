@@ -10,8 +10,8 @@
   "scripts": {
     "lint": "eslint",
     "prettier": "prettier -w .",
-    "start": "nodemon server.js",
-    "start:prod": "NODE_ENV=production node server.js"
+    "start": "NODE_ENV=production node server.js",
+    "start:dev": "NODE_ENV=development nodemon server.js"
   },
   "keywords": [
     "node.js",
