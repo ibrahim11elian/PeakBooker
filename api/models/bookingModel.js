@@ -52,32 +52,32 @@ bookingSchema.pre(/^find/, function (next) {
 });
 
 bookingSchema.statics.calcTourDateParticipants = async function (tourId) {
-  const stats = await this.aggregate([
-    {
-      $match: { tour: tourId },
-    },
-    {
-      $group: {
-        _id: '$tourDate',
-        participants: { $sum: 1 },
-      },
-    },
-  ]);
+  try {
+    const stats = await this.aggregate([
+      { $match: { tour: tourId } },
+      { $group: { _id: '$tourDate', participants: { $sum: 1 } } },
+    ]);
 
-  const tour = await TourModel.findById(tourId);
-  if (stats.length > 0) {
-    tour.startDates.forEach((date, i) => {
-      const participants =
-        stats.find((s) => s._id.toString() === date.toString())?.participants ||
-        0;
-      tour.participants[i] = participants;
-      tour.soldOut[i] = participants >= tour.maxGroupSize;
-    });
-  } else {
-    tour.participants = Array(tour.startDates.length).fill(0);
-    tour.soldOut = Array(tour.startDates.length).fill(false);
+    const tour = await TourModel.findById(tourId);
+    if (!tour) throw new Error('Tour not found');
+
+    if (stats.length > 0) {
+      const statsMap = new Map(
+        stats.map((s) => [s._id.toString(), s.participants]),
+      );
+      tour.startDates.forEach((date, i) => {
+        const participants = statsMap.get(date.toString()) || 0;
+        tour.participants[i] = participants;
+        tour.soldOut[i] = participants >= tour.maxGroupSize;
+      });
+    } else {
+      tour.participants = Array(tour.startDates.length).fill(0);
+      tour.soldOut = Array(tour.startDates.length).fill(false);
+    }
+    await tour.save();
+  } catch (err) {
+    throw new Error(err);
   }
-  await tour.save();
 };
 
 bookingSchema.post('save', function () {
