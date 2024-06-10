@@ -4,12 +4,62 @@ This project is a tour booking application based on the Node.js course by Jonas 
 
 ## Table of Contents
 
+- [Folder Structure](#folder-structure)
 - [Features](#features)
 - [Technologies Used](#technologies-used)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Error Handling](#error-handling)
 - [Documentation](#documentation)
+
+## Folder Structure
+
+```text
+.
+├── api
+│   ├── controllers
+│   │   ├── authController.js
+│   │   ├── baseController.js
+│   │   ├── bookingController.js
+│   │   ├── errorController.js
+│   │   ├── reviewController.js
+│   │   ├── toursController.js
+│   │   └── usersController.js
+│   ├── models
+│   │   ├── bookingModel.js
+│   │   ├── refreshTokenModel.js
+│   │   ├── reviewModel.js
+│   │   ├── tourModel.js
+│   │   └── userModel.js
+│   ├── routes
+│   │   ├── booking-routes.js
+│   │   ├── index.js
+│   │   ├── reviews-routes.js
+│   │   ├── tours-routes.js
+│   │   └── users-routes.js
+│   └── utils
+│       ├── api-features.js
+│       ├── email.js
+│       ├── error.js
+│       ├── firebase-config.js
+│       ├── folder-builder.js
+│       ├── imageUploader.js
+│       └── logger.js
+├── app.js
+├── app.log
+├── eslint.config.js
+├── package.json
+├── package-lock.json
+├── README.md
+├── server.js
+├── vercel.json
+└── views
+    ├── baseEmail.pug
+    ├── passwordReset.pug
+    ├── _style.pug
+    ├── verify.pug
+    └── welcome.pug
+```
 
 ## Features
 
@@ -99,7 +149,7 @@ This project is a tour booking application based on the Node.js course by Jonas 
    FIREBASE_PROJECT_ID=
    FIREBASE_STORAGE_BUCKET=
    FIREBASE_MESSAGING_SENDER_ID=
-   FIREBASE_APP_ID=1:
+   FIREBASE_APP_ID=
    FIREBASE_MEASUREMENT_ID=
 
    FIREBASE_PRIVATE_KEY=
